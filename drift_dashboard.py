@@ -104,7 +104,7 @@ try:
         )
 
         # --- График кумулятивной доходности ---
-        st.subheader("📈 Кумулятивная доходность (рост $1)")
+        st.subheader("Strategies cumulative returns")
 
         fig = px.line(
             plot_df,
@@ -124,7 +124,7 @@ try:
             title_font_size=16,
             legend_title_text="Стратегии:",
             margin=dict(l=40, r=40, t=80, b=60),
-            yaxis=dict(rangemode="tozero")  # начинается с нуля
+            # yaxis=dict(rangemode="tozero")  # начинается с нуля
         )
 
         fig.update_traces(line=dict(width=2.5))
