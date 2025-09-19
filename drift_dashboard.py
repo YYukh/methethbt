@@ -106,7 +106,7 @@ try:
         )
 
         # --- График с кастомными цветами ---
-        st.subheader("Strategies cumulative returns")
+        st.subheader("Кумулятивная доходность стратегий")
 
         fig = px.line(
             plot_df,
@@ -142,7 +142,7 @@ try:
         fig.update_layout(
             hovermode="x unified",
             xaxis_title="Time",
-            yaxis_title="Portfolio Value ($)",
+            yaxis_title="Portfolio Value",
             height=650,
             title_font_size=16,
             legend_title_text="Стратегии:",
