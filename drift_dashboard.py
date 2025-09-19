@@ -99,8 +99,8 @@ try:
         plot_df = cumulative_df.melt(
             id_vars=[time_col],
             value_vars=selected_columns,
-            var_name='Стратегия',
-            value_name='Кумулятивная доходность'
+            var_name='Strategy',
+            value_name='Cumulative returns'
         )
 
         # --- График кумулятивной доходности ---
@@ -109,17 +109,17 @@ try:
         fig = px.line(
             plot_df,
             x=time_col,
-            y='Кумулятивная доходность',
-            color='Стратегия',
+            y='Cumulative returns',
+            color='Stratgy',
             title=f"Рост $1: {', '.join(selected_columns)} | {start} – {end}",
-            labels={time_col: "Время", "Кумулятивная доходность": "Значение портфеля ($)"},
+            labels={time_col: "Time", "Cumulative returns": "Portfolio value"},
             markers=False
         )
 
         fig.update_layout(
             hovermode="x unified",
-            xaxis_title="Время",
-            yaxis_title="Значение портфеля ($)",
+            xaxis_title="Time",
+            yaxis_title="Portfolio",
             height=650,
             title_font_size=16,
             legend_title_text="Стратегии:",
@@ -130,11 +130,6 @@ try:
         fig.update_traces(line=dict(width=2.5))
 
         st.plotly_chart(fig, use_container_width=True)
-
-        # Дополнительно: показать финальные значения
-        st.write("### 💰 Итоговое значение $1 к концу периода")
-        final_values = cumulative_df[selected_columns].iloc[-1]
-        st.dataframe(final_values.to_frame(name="Финальное значение").style.format("{:.4f}"))
 
 except FileNotFoundError as e:
     st.error(f"Файл не найден: {e.filename}")
