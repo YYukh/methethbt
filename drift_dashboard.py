@@ -126,7 +126,7 @@ try:
         colors = {}
         for col in selected_columns:
             if col == default_col:
-                colors[col] = "#2E8B57"
+                colors[col] = "#32CD32"
             else:
                 colors[col] = px.colors.qualitative.Plotly[len(colors) % 10]  # остальные — из стандартной палитры
 
