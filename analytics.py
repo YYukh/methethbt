@@ -58,137 +58,275 @@ def leverage_analysis(df, strategy_name='every_day', hedge_token='ETH', hedge_to
     # Чтобы сохранить: fig.write_image(f"lev_{strategy_name}.png", width=1200, height=600)
 
 
-def pnl_decompose(df, resample='W', bar_width = 1.5, strategy_name = 'every_day'):
-    
-    pnl_df = df[['lst_pnl', 'fund_pnl', 'hedge_pnl', 'total_pnl', 'capital']]
-    pnl_df['net_pnl'] = ((pnl_df['lst_pnl'] + pnl_df['hedge_pnl']) / pnl_df['capital'].shift()).fillna(0)
-    pnl_df['fund_pnl'] = (pnl_df['fund_pnl'] / pnl_df['capital'].shift()).fillna(0)
-    pnl_df['total_pnl'] = (pnl_df['total_pnl'] / pnl_df['capital'].shift()).fillna(0)
-    pnl_df['spot_pnl'] = (pnl_df['lst_pnl'] / pnl_df['capital'].shift()).fillna(0)
-    pnl_df['hedge_pnl'] = (pnl_df['hedge_pnl'] / pnl_df['capital'].shift()).fillna(0)
+def pnl_decompose(df, resample='W', strategy_name='every_day'):
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+    import plotly.express as px
 
-    plt.figure(figsize=(14, 7))
+    # Расчёт нормированных PnL
+    pnl_df = df[['lst_pnl', 'fund_pnl', 'hedge_pnl', 'total_pnl', 'capital']].copy()
+    pnl_df['net_pnl'] = (pnl_df['lst_pnl'] + pnl_df['hedge_pnl']) / pnl_df['capital'].shift()
+    pnl_df['fund_pnl'] = pnl_df['fund_pnl'] / pnl_df['capital'].shift()
+    pnl_df['total_pnl'] = pnl_df['total_pnl'] / pnl_df['capital'].shift()
 
-    # Кумулятивные суммы
-    cum_net = (1+pnl_df['net_pnl']).cumprod()
-    cum_funding = (1+pnl_df['fund_pnl']).cumprod()
-    cum_total = (1+pnl_df['total_pnl']).cumprod()
+    pnl_df = pnl_df.fillna(0)
 
-    # Границы для заливки
-    plt.fill_between(pnl_df.index, cum_net, where=cum_net >= 1, facecolor='blue', alpha=0.3, label='Актив+Хедж (+)')
-    plt.fill_between(pnl_df.index, cum_net, where=cum_net < 1, facecolor='red', alpha=0.3, label='Актив+Хедж (-)')
-    plt.fill_between(pnl_df.index, cum_total, cum_net, where=cum_funding >= 1, 
-                    facecolor='green', alpha=0.3, label='Фандинг (+)')
-    plt.fill_between(pnl_df.index, cum_total, cum_net, where=cum_funding < 1, 
-                    facecolor='orange', alpha=0.3, label='Фандинг (-)')
+    # Кумулятивные значения
+    cum_net = (1 + pnl_df['net_pnl']).cumprod()
+    cum_funding = (1 + pnl_df['fund_pnl']).cumprod()
+    cum_total = (1 + pnl_df['total_pnl']).cumprod()
 
-    # Линии для наглядности
-    plt.plot(cum_net, color='blue', linewidth=1, linestyle='--')
-    plt.plot(cum_total, color='black', linewidth=2, label='Общий PnL')
-    plt.ylim(0.98, None)
+    # === ГРАФИК 1: Кумулятивный PnL (заполненные области) ===
+    fig1 = go.Figure()
 
-    plt.title(f'Факторный анализ прибыли {strategy_name}')
-    plt.ylabel('Кумулятивный PnL')
-    plt.grid(True)
-    plt.legend()
-    plt.savefig(f"factor_{strategy_name}.png")
-    plt.show()
-    
+    # Область: net_pnl (положительная/отрицательная)
+    fig1.add_trace(go.Scatter(
+        x=pnl_df.index, y=cum_net,
+        fill=None,
+        mode='lines',
+        line=dict(color='gray', dash='dot'),
+        showlegend=False,
+        hoverinfo='skip'
+    ))
 
-    # Агрегируем по неделям
+    fig1.add_trace(go.Scatter(
+        x=pnl_df.index, y=cum_net,
+        fill='tonexty',
+        fillcolor='rgba(0,0,255,0.3)',
+        name='Актив+Хедж (+)',
+        mode='lines',
+        line=dict(color='blue'),
+        hovertemplate='Net PnL: %{y:.4f}<extra></extra>'
+    ))
+
+    fig1.add_trace(go.Scatter(
+        x=pnl_df.index, y=[1]*len(cum_net),
+        mode='lines',
+        line=dict(width=0),
+        showlegend=False,
+        hoverinfo='skip'
+    ))
+
+    fig1.add_trace(go.Scatter(
+        x=pnl_df.index, y=cum_net,
+        fill='y',
+        fillcolor='rgba(255,0,0,0.3)',
+        name='Актив+Хедж (-)',
+        mode='lines',
+        line=dict(color='red'),
+        hovertemplate='Net PnL: %{y:.4f}<extra></extra>'
+    ))
+
+    # Funding: разница между total и net
+    fig1.add_trace(go.Scatter(
+        x=pnl_df.index, y=cum_total,
+        fill='tonexty',
+        fillcolor='rgba(0,255,0,0.3)',
+        name='Фандинг (+)',
+        mode='lines',
+        line=dict(color='green'),
+        hovertemplate='Funding (+): %{y:.4f}<extra></extra>'
+    ))
+
+    fig1.add_trace(go.Scatter(
+        x=pnl_df.index, y=cum_net,
+        mode='lines',
+        line=dict(width=0),
+        showlegend=False,
+        hoverinfo='skip'
+    ))
+
+    fig1.add_trace(go.Scatter(
+        x=pnl_df.index, y=cum_total,
+        fill='tonexty',
+        fillcolor='rgba(255,165,0,0.3)',
+        name='Фандинг (-)',
+        mode='lines',
+        line=dict(color='orange'),
+        hovertemplate='Funding (-): %{y:.4f}<extra></extra>'
+    ))
+
+    # Общая линия
+    fig1.add_trace(go.Scatter(
+        x=pnl_df.index, y=cum_total,
+        name='Общий PnL',
+        mode='lines',
+        line=dict(color='black', width=2.5),
+        hovertemplate='Total PnL: %{y:.4f}<extra></extra>'
+    ))
+
+    fig1.update_layout(
+        title=f"Факторный анализ прибыли {strategy_name}",
+        xaxis_title="Время",
+        yaxis_title="Кумулятивный PnL",
+        hovermode="x unified",
+        height=600,
+        legend=dict(orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5),
+        margin=dict(l=40, r=40, t=80, b=60)
+    )
+    fig1.show()
+    # fig1.write_image(f"factor_{strategy_name}.png", width=1200, height=600)
+
+    # === ГРАФИК 2: Недельные бары (stacked) ===
     weekly = pnl_df.resample(resample).sum()
 
-    fig, ax = plt.subplots(figsize=(14, 7))  # Увеличиваем размер фигуры
-
-    # Положительные и отрицательные части
+    # Разделяем положительные и отрицательные
     weekly_pos = weekly.clip(lower=0)
     weekly_neg = weekly.clip(upper=0)
 
-    # Настройки ширины столбцов
-    bar_width = bar_width  # Ширина столбцов (по умолчанию 0.8, можно увеличить до 1.0)
-    pos_positions = weekly_pos.index
-    neg_positions = weekly_neg.index
+    fig2 = go.Figure()
 
-    # Столбцы для позиции (делаем толще)
-    ax.bar(pos_positions, weekly_pos['net_pnl'], 
-        width=bar_width, color='blue', label='Актив+Хедж (+)')
-    ax.bar(neg_positions, weekly_neg['net_pnl'], 
-        width=bar_width, color='red', label='Актив+Хедж (-)')
+    # Net PnL
+    fig2.add_trace(go.Bar(
+        x=weekly_pos.index,
+        y=weekly_pos['net_pnl'],
+        name='Актив+Хедж (+)',
+        marker_color='blue',
+        width=0.8
+    ))
+    fig2.add_trace(go.Bar(
+        x=weekly_neg.index,
+        y=weekly_neg['net_pnl'],
+        name='Актив+Хедж (-)',
+        marker_color='red',
+        width=0.8
+    ))
 
-    # Столбцы для фандинга (тоже толще)
-    ax.bar(pos_positions, weekly_pos['fund_pnl'], 
-        width=bar_width, bottom=weekly_pos['net_pnl'],
-        color='green', label='Фандинг (+)')
-    ax.bar(neg_positions, weekly_neg['fund_pnl'], 
-        width=bar_width, bottom=weekly_neg['net_pnl'],
-        color='orange', label='Фандинг (-)')
+    # Funding PnL (с опорой на net)
+    fig2.add_trace(go.Bar(
+        x=weekly_pos.index,
+        y=weekly_pos['fund_pnl'],
+        name='Фандинг (+)',
+        marker_color='green',
+        width=0.8,
+        base=weekly_pos['net_pnl']
+    ))
+    fig2.add_trace(go.Bar(
+        x=weekly_neg.index,
+        y=weekly_neg['fund_pnl'],
+        name='Фандинг (-)',
+        marker_color='orange',
+        width=0.8,
+        base=weekly_neg['net_pnl']
+    ))
 
-    # Улучшаем подписи дат
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))  # Формат даты
-    plt.xticks(rotation=45)  # Поворачиваем подписи для читаемости
+    fig2.update_layout(
+        title=f"Вклад компонент по неделям {strategy_name}",
+        xaxis_title="Неделя",
+        yaxis_title="PnL",
+        barmode='relative',
+        hovermode="x unified",
+        height=600,
+        legend=dict(orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5),
+        margin=dict(l=40, r=40, t=80, b=60),
+        xaxis_tickformat='%Y-%m-%d'
+    )
 
-    plt.title(f'Вклад компонент по неделям {strategy_name}', pad=20)
-    plt.ylabel('PnL')
-    # plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')  # Выносим легенду справа
-    plt.legend()
-    plt.grid(True, axis='y', linestyle='--', alpha=0.7)
-    plt.tight_layout()  # Автоматическая подгонка layout
-    plt.savefig(f"week_{strategy_name}.png")
-    plt.show()
+    fig2.update_xaxes(tickangle=45)
+    fig2.show()
+    # fig2.write_image(f"week_{strategy_name}.png", width=1200, height=600)
     
 
-def fees_decompose(df, strategy_name = 'every_day'):
-    
-    cost_df = df[['lst_fees', 'hedge_fees', 'total_fees', 'capital']]
+def fees_decompose(df, strategy_name='every_day'):
+    import plotly.graph_objects as go
+
+    cost_df = df[['lst_fees', 'hedge_fees', 'total_fees', 'capital']].copy()
     cost_df['lst_fees'] = -cost_df['lst_fees'] / cost_df['capital'].shift()
-    cost_df['lst_fees'][0] = -df['lst_fees'][0] / cost_df['capital'][0]
+    cost_df['lst_fees'].iloc[0] = -df['lst_fees'].iloc[0] / cost_df['capital'].iloc[0]
     cost_df['hedge_fees'] = -cost_df['hedge_fees'] / cost_df['capital'].shift()
-    cost_df['hedge_fees'][0] = -df['hedge_fees'][0] / cost_df['capital'][0]
+    cost_df['hedge_fees'].iloc[0] = -df['hedge_fees'].iloc[0] / cost_df['capital'].iloc[0]
     cost_df['total_fees'] = -cost_df['total_fees'] / cost_df['capital'].shift()
-    cost_df['total_fees'][0] = -df['total_fees'][0] / cost_df['capital'][0]
+    cost_df['total_fees'].iloc[0] = -df['total_fees'].iloc[0] / cost_df['capital'].iloc[0]
 
-    plt.figure(figsize=(14, 7))
-
-    # Кумулятивные суммы
     cum_lst = cost_df['lst_fees'].cumsum()
     cum_hedge = cost_df['hedge_fees'].cumsum()
     cum_total = cost_df['total_fees'].cumsum()
 
-    # Границы для заливки
-    plt.fill_between(cost_df.index, cum_lst, where=cum_lst < 1, facecolor='red', alpha=0.3, label='Спот')
-    plt.fill_between(cost_df.index, cum_total, cum_lst, where=cum_hedge < 1, 
-                    facecolor='orange', alpha=0.3, label='Хедж')
+    # === График 1: Кумулятивные расходы ===
+    fig1 = go.Figure()
 
-    # Линии для наглядности
-    plt.plot(cum_lst, color='blue', linewidth=1, linestyle='--')
-    plt.plot(cum_total, color='black', linewidth=2, label='Общие комиссии')
+    fig1.add_trace(go.Scatter(
+        x=cost_df.index, y=cum_lst,
+        fill='tozeroy',
+        fillcolor='rgba(255,0,0,0.3)',
+        name='Спот',
+        mode='lines',
+        line=dict(color='red'),
+        hovertemplate='Spots Fees: %{y:.6f}<extra></extra>'
+    ))
 
-    plt.title(f'Накопленные расходы {strategy_name}')
-    plt.ylabel('Кумулятивные Fees')
-    plt.grid(True)
-    plt.legend()
-    plt.savefig(f"costs_{strategy_name}.png")
-    plt.show()
-    
+    fig1.add_trace(go.Scatter(
+        x=cost_df.index, y=cum_total,
+        fill='tonexty',
+        fillcolor='rgba(255,165,0,0.3)',
+        name='Хедж',
+        mode='lines',
+        line=dict(color='orange'),
+        hovertemplate='Hedge Fees: %{y:.6f}<extra></extra>'
+    ))
 
-    plt.figure(figsize=(14, 7))
+    fig1.add_trace(go.Scatter(
+        x=cost_df.index, y=cum_total,
+        name='Общие комиссии',
+        mode='lines',
+        line=dict(color='black', width=2.5),
+        hovertemplate='Total Fees: %{y:.6f}<extra></extra>'
+    ))
 
-    cum_lst = cost_df['lst_fees'][1:] * 100
-    cum_hedge = cost_df['hedge_fees'][1:] * 100
-    cum_total = cost_df['total_fees'][1:] * 100
+    fig1.update_layout(
+        title=f"Накопленные расходы {strategy_name}",
+        xaxis_title="Время",
+        yaxis_title="Кумулятивные комиссии",
+        hovermode="x unified",
+        height=600,
+        legend=dict(orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5),
+        margin=dict(l=40, r=40, t=80, b=60)
+    )
+    fig1.show()
+    # fig1.write_image(f"costs_{strategy_name}.png", width=1200, height=600)
 
-    # Границы для заливки
-    plt.fill_between(cost_df.index[1:], cum_lst, where=cum_lst < 1, facecolor='red', alpha=0.3, label='Спот')
-    plt.fill_between(cost_df.index[1:], cum_total, cum_lst, where=cum_hedge < 1, 
-                    facecolor='orange', alpha=0.3, label='Хедж')
+    # === График 2: Комиссии в процентах (x100) без первой точки ===
+    cum_lst_pct = cost_df['lst_fees'].iloc[1:] * 100
+    cum_total_pct = cost_df['total_fees'].iloc[1:] * 100
 
-    # Линии для наглядности
-    plt.plot(cum_lst, color='blue', linewidth=1, linestyle='--')
-    plt.plot(cum_total, color='black', linewidth=2, label='Общие комиссии')
+    fig2 = go.Figure()
 
-    plt.title(f'Факторный анализ расходов {strategy_name}')
-    plt.ylabel('Fees')
-    plt.grid(True)
-    plt.legend()
-    plt.savefig(f"fees_{strategy_name}.png")
-    plt.show()
+    fig2.add_trace(go.Scatter(
+        x=cost_df.index[1:], y=cum_lst_pct,
+        fill='tozeroy',
+        fillcolor='rgba(255,0,0,0.3)',
+        name='Спот',
+        mode='lines',
+        line=dict(color='red'),
+        hovertemplate='Spots Fees: %{y:.4f}%<extra></extra>'
+    ))
+
+    fig2.add_trace(go.Scatter(
+        x=cost_df.index[1:], y=cum_total_pct,
+        fill='tonexty',
+        fillcolor='rgba(255,165,0,0.3)',
+        name='Хедж',
+        mode='lines',
+        line=dict(color='orange'),
+        hovertemplate='Hedge Fees: %{y:.4f}%<extra></extra>'
+    ))
+
+    fig2.add_trace(go.Scatter(
+        x=cost_df.index[1:], y=cum_total_pct,
+        name='Общие комиссии',
+        mode='lines',
+        line=dict(color='black', width=2.5),
+        hovertemplate='Total Fees: %{y:.4f}%<extra></extra>'
+    ))
+
+    fig2.update_layout(
+        title=f"Факторный анализ расходов {strategy_name}",
+        xaxis_title="Время",
+        yaxis_title="Комиссии (%)",
+        hovermode="x unified",
+        height=600,
+        legend=dict(orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5),
+        margin=dict(l=40, r=40, t=80, b=60)
+    )
+    fig2.show()
+    # fig2.write_image(f"fees_{strategy_name}.png", width=1200, height=600)
