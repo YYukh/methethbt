@@ -6,45 +6,56 @@ import matplotlib.dates as mdates
 import math
 from scipy.stats import kurtosis, norm, skew
 
-def leverage_analysis(df, strategy_name='every_day', hedge_token='SOL', hedge_token_price='sol_close'):
-    fig, ax1 = plt.subplots(figsize=(10, 6))
-    
-    # Получаем начальные значения
-    initial_leverage = df['leverage'].iloc[0]
-    initial_hedge_price = df[hedge_token_price].iloc[0]
-    
-    # Первый график (левая ось Y)
-    color = 'tab:red'
-    ax1.set_xlabel('Время')
-    ax1.set_ylabel('Leverage', color=color)
-    ax1.plot(df['leverage'], color=color)
-    ax1.tick_params(axis='y', labelcolor=color)
-    ax1.grid(True, alpha=0.5)
-    
-    # Создаем вторую ось Y и выравниваем начальные точки
-    ax2 = ax1.twinx()
-    color = 'tab:blue'
-    ax2.set_ylabel(f'{hedge_token} price', color=color)
-    ax2.plot(df[hedge_token_price], color=color)
-    
-    # Вычисляем соотношение масштабов для начальных точек
-    y1_min, y1_max = ax1.get_ylim()
-    y2_min, y2_max = ax2.get_ylim()
-    
-    # Выравниваем оси так, чтобы initial_leverage и initial_sol_price визуально совпадали
-    ax1.set_ylim(y1_min, y1_max)
-    ax2.set_ylim(
-        initial_hedge_price - (initial_leverage - y1_min) * (y2_max - y2_min) / (y1_max - y1_min),
-        initial_hedge_price + (y1_max - initial_leverage) * (y2_max - y2_min) / (y1_max - y1_min)
+def leverage_analysis(df, strategy_name='every_day', hedge_token='ETH', hedge_token_price='eth_fut_close'):
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+
+    # Проверим наличие нужных столбцов
+    if 'leverage' not in df.columns or hedge_token_price not in df.columns:
+        raise ValueError("Missing required columns for leverage analysis")
+
+    # Создаём subplot с общей X
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+    # Основная ось: Leverage
+    fig.add_trace(
+        go.Scatter(
+            x=df.index,
+            y=df['leverage'],
+            name="Leverage",
+            line=dict(color="red", width=2),
+            hovertemplate="Leverage: %{y:.2f}<extra></extra>"
+        ),
+        secondary_y=False,
     )
-    
-    ax2.tick_params(axis='y', labelcolor=color)
-    ax2.grid(False)
-    
-    plt.title(f'Графики плеча для {strategy_name}')
-    fig.tight_layout()
-    plt.savefig(f"lev_{strategy_name}.png")
-    plt.show()
+
+    # Вторичная ось: Цена токена
+    fig.add_trace(
+        go.Scatter(
+            x=df.index,
+            y=df[hedge_token_price],
+            name=f"{hedge_token} Price",
+            line=dict(color="blue", width=2),
+            hovertemplate=f"{hedge_token}: %{{y:.4f}}<extra></extra>"
+        ),
+        secondary_y=True,
+    )
+
+    # Настройка осей
+    fig.update_xaxes(title_text="Time")
+    fig.update_yaxes(title_text="Leverage", color="red", secondary_y=False)
+    fig.update_yaxes(title_text=f"{hedge_token} Price", color="blue", secondary_y=True)
+
+    fig.update_layout(
+        title=f"Графики плеча и цены {hedge_token} для {strategy_name}",
+        hovermode="x unified",
+        height=600,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=40, r=40, t=80, b=60)
+    )
+
+    fig.show()
+    # Чтобы сохранить: fig.write_image(f"lev_{strategy_name}.png", width=1200, height=600)
 
 
 def pnl_decompose(df, resample='W', bar_width = 1.5, strategy_name = 'every_day'):
