@@ -18,10 +18,10 @@ st.markdown("""
 
 # --- Загрузка данных ---
 try:
-    df = pd.read_excel("drift_data.xlsx")
+    df = pd.read_excel("sl_returns.xlsx")
 
     # Проверяем наличие столбца времени
-    time_col = 'Period per hour'
+    time_col = 'time'
     if time_col not in df.columns:
         st.error(f"В Excel-файле должен быть столбец '{time_col}'")
         st.stop()
@@ -126,7 +126,7 @@ try:
         st.dataframe(stats.style.format(precision=4))
 
 except FileNotFoundError:
-    st.error("Файл `drift_data.xlsx` не найден. Положите его в ту же папку, что и `drift_dashboard.py`.")
+    st.error("Файл `sl_returns.xlsx` не найден. Положите его в ту же папку, что и `drift_dashboard.py`.")
 except Exception as e:
     st.error(f"Ошибка при загрузке данных: {e}")
     st.exception(e)
