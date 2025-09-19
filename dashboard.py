@@ -30,6 +30,7 @@ try:
         - deviation{0.005/0.01} - ребалансировка при отклонении от таргета на 0.5% или 1%
         - reb{1/12/24} - ребалансировка по времени каждые 1, 12, 24 часа
     """)
+    
     stats = pd.read_excel('sl_metrics.xlsx')
     if 'Unnamed: 0' in stats.columns:
         stats.drop(columns=['Unnamed: 0'], inplace=True)
