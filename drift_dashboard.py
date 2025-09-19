@@ -152,10 +152,12 @@ try:
 
         st.plotly_chart(fig, use_container_width=True)
 
-        # Показать итоговые значения
-        st.write("### 💰 Итоговое значение $1")
-        final_values = cumulative_df[selected_columns].iloc[-1]
-        st.dataframe(final_values.to_frame(name="Final Value").style.format("{:.4f}"))
+        # Показываем статистику
+        st.write("### 📊 Анализ хвостовых рисков")
+        cvar = pd.read_excel('sl_cvar.xlsx')
+        if 'Unnamed: 0' in cvar.columns:
+            cvar.drop(columns=['Unnamed: 0'], inplace=True)
+        st.dataframe(cvar.style.format(precision=4))
 
 except FileNotFoundError as e:
     st.error(f"Файл не найден: убедитесь, что sl_returns.xlsx и sl_metrics.xlsx находятся в папке приложения.")
