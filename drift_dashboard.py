@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from datetime import time
 
 # Настройка страницы
 st.set_page_config(page_title="Drift Dashboard", layout="wide")
@@ -49,26 +50,33 @@ try:
     selected_columns = st.multiselect(
         "Выберите стратегии для отображения",
         options=numeric_columns,
-        default=numeric_columns[4:5]
+        default=numeric_columns[4:5]  # дефолт — 5-я стратегия
     )
 
     if not selected_columns:
         st.warning("Пожалуйста, выберите хотя бы один столбец.")
         st.stop()
 
-    # --- Выбор периода ---
-    st.write("### 🔍 Выберите временной диапазон (с точностью до часа)")
+    # --- Выбор периода (только полные часы) ---
+    st.write("### 🔍 Выберите временной диапазон (по полным часам)")
 
     min_dt = df[time_col].min()
     max_dt = df[time_col].max()
 
+    # Округляем время до ближайшего часа (вниз)
+    min_time_rounded = time(min_dt.hour, 0, 0)
+    max_time_rounded = time(max_dt.hour, 0, 0)
+
     col1, col2 = st.columns(2)
     with col1:
         start_date = st.date_input("Дата начала", min_dt.date())
-        start_time = st.time_input("Время начала", min_dt.time())
+        # Только выбор часа
+        start_hour = st.slider("Час начала", 0, 23, min_dt.hour)
+        start_time = time(start_hour, 0, 0)
     with col2:
         end_date = st.date_input("Дата окончания", max_dt.date())
-        end_time = st.time_input("Время окончания", max_dt.time())
+        end_hour = st.slider("Час окончания", 0, 23, max_dt.hour)
+        end_time = time(end_hour, 0, 0)
 
     start = pd.Timestamp.combine(start_date, start_time)
     end = pd.Timestamp.combine(end_date, end_time)
@@ -86,12 +94,10 @@ try:
     else:
         # --- РАСЧЁТ КУМУЛЯТИВНОЙ ДОХОДНОСТИ ---
         cumulative_df = filtered_df[[time_col]].copy()
-        
         for col in selected_columns:
-            # Преобразуем простую доходность в кумулятивную: (1 + r).cumprod()
             cumulative_df[col] = (1 + filtered_df[col]).cumprod()
 
-        # Подготовка для Plotly («длинный» формат)
+        # Подготовка для Plotly
         plot_df = cumulative_df.melt(
             id_vars=[time_col],
             value_vars=selected_columns,
@@ -99,7 +105,7 @@ try:
             value_name='Cumulative returns'
         )
 
-        # --- График кумулятивной доходности ---
+        # --- График с кастомными цветами ---
         st.subheader("Strategies cumulative returns")
 
         fig = px.line(
@@ -112,23 +118,47 @@ try:
             markers=False
         )
 
+        # --- Кастомизация цветов ---
+        # Сделаем первую выбранную стратегию (или дефолтную) зелёной
+        default_col = selected_columns[0]  # первая из выбранных
+
+        # Создаём словарь цветов
+        colors = {}
+        for col in selected_columns:
+            if col == default_col:
+                colors[col] = "green"
+            else:
+                colors[col] = px.colors.qualitative.Plotly[len(colors) % 10]  # остальные — из стандартной палитры
+
+        # Применяем цвета
+        for i, trace in enumerate(fig.data):
+            strategy_name = trace.name
+            if strategy_name in colors:
+                trace.update(line=dict(color=colors[strategy_name], width=3 if strategy_name == default_col else 2.5))
+            else:
+                trace.update(line=dict(width=2.5))
+
+        # Улучшаем внешний вид
         fig.update_layout(
             hovermode="x unified",
             xaxis_title="Time",
-            yaxis_title="Portfolio",
+            yaxis_title="Portfolio Value ($)",
             height=650,
             title_font_size=16,
             legend_title_text="Стратегии:",
             margin=dict(l=40, r=40, t=80, b=60),
-            # yaxis=dict(rangemode="tozero")  # начинается с нуля
+            legend=dict(itemclick="toggleothers")  # клик по легенде: скрывает всё кроме одного
         )
-
-        fig.update_traces(line=dict(width=2.5))
 
         st.plotly_chart(fig, use_container_width=True)
 
+        # Показать итоговые значения
+        st.write("### 💰 Итоговое значение $1")
+        final_values = cumulative_df[selected_columns].iloc[-1]
+        st.dataframe(final_values.to_frame(name="Final Value").style.format("{:.4f}"))
+
 except FileNotFoundError as e:
-    st.error(f"Файл не найден: {e.filename}")
+    st.error(f"Файл не найден: убедитесь, что sl_returns.xlsx и sl_metrics.xlsx находятся в папке приложения.")
 except Exception as e:
     st.error(f"Ошибка при загрузке данных: {e}")
     st.exception(e)
