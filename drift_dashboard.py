@@ -20,7 +20,7 @@ st.markdown("""
 # --- Загрузка данных ---
 try:
     # Показываем статистику
-    st.write("### 📊 Статистика по бектестам")
+    st.write("### Статистика по бектестам")
     stats = pd.read_excel('sl_metrics.xlsx')
     if 'Unnamed: 0' in stats.columns:
         stats.drop(columns=['Unnamed: 0'], inplace=True)
@@ -153,7 +153,7 @@ try:
         st.plotly_chart(fig, use_container_width=True)
 
         # Показываем статистику
-        st.write("### 📊 Анализ хвостовых рисков")
+        st.write("### Анализ хвостовых рисков")
         cvar = pd.read_excel('sl_cvar.xlsx')
         if 'Unnamed: 0' in cvar.columns:
             cvar.drop(columns=['Unnamed: 0'], inplace=True)
