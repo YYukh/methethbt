@@ -6,7 +6,7 @@ import plotly.express as px
 st.set_page_config(page_title="Drift Dashboard", layout="wide")
 
 # Заголовок
-st.title("📊 Drift Dashboard")
+st.title("Анализ бектестов стратегий по METH/ETH")
 st.markdown("""
     Добро пожаловать в приложение для анализа данных.
     
@@ -40,10 +40,6 @@ try:
     df[time_col] = pd.to_datetime(df[time_col], errors='coerce')
     df = df.dropna(subset=[time_col]).sort_values(time_col).reset_index(drop=True)
 
-    # Показываем первые строки
-    st.write("Первые строки данных (доходности):")
-    st.dataframe(df.head(10))
-
     # --- Выбор нескольких столбцов ---
     numeric_columns = df.select_dtypes(include='number').columns.tolist()
     if not numeric_columns:
@@ -51,7 +47,7 @@ try:
         st.stop()
 
     selected_columns = st.multiselect(
-        "Выберите стратегии/активы для отображения",
+        "Выберите стратегии для отображения",
         options=numeric_columns,
         default=numeric_columns[:2]
     )
