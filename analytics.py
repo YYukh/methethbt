@@ -5,7 +5,6 @@ import numpy as np
 import matplotlib.dates as mdates
 import math
 from scipy.stats import kurtosis, norm, skew
-from var import VaR
 
 def leverage_analysis(df, strategy_name='every_day', hedge_token='SOL', hedge_token_price='sol_close'):
     fig, ax1 = plt.subplots(figsize=(10, 6))
