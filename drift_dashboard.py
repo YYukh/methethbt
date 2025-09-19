@@ -107,7 +107,7 @@ try:
             x=time_col,
             y='Cumulative returns',
             color='Strategy',
-            title=f"Рост $1: {', '.join(selected_columns)} | {start} – {end}",
+            title=f"Strategy: {', '.join(selected_columns)} | {start} – {end}",
             labels={time_col: "Time", "Cumulative returns": "Portfolio value"},
             markers=False
         )
