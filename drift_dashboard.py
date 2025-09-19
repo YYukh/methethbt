@@ -18,8 +18,7 @@ st.markdown("""
 
 # --- Загрузка данных ---
 try:
-    df_ret = pd.read_excel("sl_returns.xlsx")
-    df = (1+df_ret).cumprod()
+    df = pd.read_excel("sl_returns.xlsx")
 
     # Проверяем наличие столбца времени
     time_col = 'time'
@@ -30,7 +29,9 @@ try:
     # Преобразуем в datetime
     df[time_col] = pd.to_datetime(df[time_col], errors='coerce')
     df = df.dropna(subset=[time_col]).sort_values(time_col).reset_index(drop=True)
-
+    
+    df = (1+df_ret).cumprod()
+    
     # Показываем первые строки
     st.write("Первые строки данных:")
     st.dataframe(df.head(10))
