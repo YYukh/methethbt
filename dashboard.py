@@ -4,13 +4,13 @@ import plotly.express as px
 from datetime import time
 
 # Настройка страницы
-st.set_page_config(page_title="Drift Dashboard", layout="wide")
+st.set_page_config(page_title="METH/ETH backtest Dashboard", layout="wide")
 
 # Заголовок
 st.title("Анализ бектестов стратегий по METH/ETH")
 st.markdown("""
     Здесь вы можете:
-    - Увидеть **основные метрики** по результатам бектестов
+    - Увидеть **основные метрики** по результатам бектестов (указаны в десятичных)
     - Выбрать **стратегии** для отображения
     - Указать временной период **с точностью до часа**
     - Ознакомиться с **хвостовыми рискам** стратегий
