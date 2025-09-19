@@ -18,6 +18,10 @@ st.markdown("""
 
 # --- Загрузка данных ---
 try:
+    st.write("### 📊 Статистика по бектестам данным")
+    stats = pd.read_excel('sl_metrics.xlsx')
+    st.dataframe(stats.style.format(precision=4))
+
     df = pd.read_excel("sl_returns.xlsx")
 
     # Проверяем наличие столбца времени
@@ -29,8 +33,6 @@ try:
     # Преобразуем в datetime
     df[time_col] = pd.to_datetime(df[time_col], errors='coerce')
     df = df.dropna(subset=[time_col]).sort_values(time_col).reset_index(drop=True)
-    
-    df = (1+df).cumprod()
     
     # Показываем первые строки
     st.write("Первые строки данных:")
@@ -122,10 +124,6 @@ try:
         # Отображаем график
         st.plotly_chart(fig, use_container_width=True)
 
-        # Дополнительно: показать статистику
-        st.write("### 📊 Статистика по выбранным данным")
-        stats = filtered_df[selected_columns].describe().T
-        st.dataframe(stats.style.format(precision=4))
 
 except FileNotFoundError:
     st.error("Файл `sl_returns.xlsx` не найден. Положите его в ту же папку, что и `drift_dashboard.py`.")
