@@ -106,7 +106,7 @@ try:
             plot_df,
             x=time_col,
             y='Cumulative returns',
-            color='Strategy',
+            color='blue',
             title=f"Strategy: {', '.join(selected_columns)} | {start} – {end}",
             labels={time_col: "Time", "Cumulative returns": "Portfolio value"},
             markers=False
