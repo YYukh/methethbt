@@ -18,7 +18,8 @@ st.markdown("""
 
 # --- Загрузка данных ---
 try:
-    df = pd.read_excel("sl_returns.xlsx")
+    df_ret = pd.read_excel("sl_returns.xlsx")
+    df = (1+df_ret).cumprod()
 
     # Проверяем наличие столбца времени
     time_col = 'time'
