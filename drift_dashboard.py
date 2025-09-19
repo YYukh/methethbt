@@ -20,6 +20,7 @@ st.markdown("""
 try:
     st.write("### 📊 Статистика по бектестам данным")
     stats = pd.read_excel('sl_metrics.xlsx')
+    stats.drop(columns=['Unnamed: 0', 'Monthly Turnover'], inplace=True)
     st.dataframe(stats.style.format(precision=4))
 
     df = pd.read_excel("sl_returns.xlsx")
