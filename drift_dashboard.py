@@ -30,7 +30,7 @@ try:
     df[time_col] = pd.to_datetime(df[time_col], errors='coerce')
     df = df.dropna(subset=[time_col]).sort_values(time_col).reset_index(drop=True)
     
-    df = (1+df_ret).cumprod()
+    df = (1+df).cumprod()
     
     # Показываем первые строки
     st.write("Первые строки данных:")
